@@ -1,4 +1,5 @@
-pragma solidity ^0.4.23;
+
+  pragma solidity ^0.4.23;
   library SafeMath {
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
       assert(b <= a);
@@ -15,7 +16,7 @@ pragma solidity ^0.4.23;
     string public constant name = "MarcoPolo";
     string public constant symbol = "MAP";
     uint256 public constant decimals = 18;
-    uint256 public constant totalSupply = 10000000000*10**decimals;
+    uint256 public constant totalSupply = 10000000000 * 10 ** decimals;
     address private founder = 0x0;
     uint256 private distributed = 0;
     mapping (address => uint256) private balances;
