@@ -1,11 +1,11 @@
-
-pragma solidity = 0.5.17;
+//SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.0;
 
 contract MAP {
     // --- Auth ---
-    mapping (address => uint) public wards;
-    function rely(address guy) external auth { wards[guy] = 1; }
-    function deny(address guy) external auth { wards[guy] = 0; }
+    mapping (address => uint256) public wards;
+    function rely(address account) external auth { wards[account] = 1; }
+    function deny(address account) external auth { wards[account] = 0; }
     
     modifier auth {
         require(wards[msg.sender] == 1, "not-authorized");
@@ -19,61 +19,87 @@ contract MAP {
     uint8   public constant decimals = 18;
     uint256 public totalSupply;
 
-    mapping (address => uint)                      public balanceOf;
-    mapping (address => mapping (address => uint)) public allowance;
+    mapping (address => uint256)                      public balanceOf;
+    mapping (address => mapping (address => uint256)) public allowance;
 
-    event Approval(address indexed src, address indexed guy, uint wad);
-    event Transfer(address indexed src, address indexed dst, uint wad);
+    event Approval(address indexed from, address indexed to, uint256 amount);
+    event Transfer(address indexed from, address indexed to, uint256 amount);
 
-    constructor() public {
+    constructor() {
         wards[msg.sender] = 1;
     }
 
     // --- Math ---
-    function add(uint x, uint y) internal pure returns (uint z) {
+    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x + y) >= x);
     }
-    function sub(uint x, uint y) internal pure returns (uint z) {
+    function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x - y) <= x);
     }
 
     // --- Token ---
-    function transfer(address dst, uint wad) external returns (bool) {
-        return transferFrom(msg.sender, dst, wad);
+    function transfer(address to, uint256 amount) external returns (bool) {
+        return transferFrom(msg.sender, to, amount);
     }
     
-    function transferFrom(address src, address dst, uint wad)public returns (bool){
-        require(balanceOf[src] >= wad, "insufficient-balance");
-        if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
-            require(allowance[src][msg.sender] >= wad, "insufficient-allowance");
-            allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
+    function transferFrom(address from, address to, uint256 amount)public returns (bool){
+        require(balanceOf[from] >= amount, "insufficient-balance");
+        if (from != msg.sender && allowance[from][msg.sender] != type(uint256).max) {
+            require(allowance[from][msg.sender] >= amount, "insufficient-allowance");
+            allowance[from][msg.sender] = sub(allowance[from][msg.sender], amount);
         }
-        balanceOf[src] = sub(balanceOf[src], wad);
-        balanceOf[dst] = add(balanceOf[dst], wad);
-        emit Transfer(src, dst, wad);
+        balanceOf[from] = sub(balanceOf[from], amount);
+        balanceOf[to] = add(balanceOf[to], amount);
+        emit Transfer(from, to, amount);
         return true;
     }
     
-    function mint(address usr, uint wad) external auth {
-        balanceOf[usr] = add(balanceOf[usr], wad);
-        totalSupply    = add(totalSupply, wad);
-        emit Transfer(address(0), usr, wad);
+    function mint(address account, uint256 amount) external auth {
+        balanceOf[account] = add(balanceOf[account], amount);
+        totalSupply    = add(totalSupply, amount);
+        emit Transfer(address(0), account, amount);
     }
     
-    function burn(address usr, uint wad) external {
-        require(balanceOf[usr] >= wad, "insufficient-balance");
-        if (usr != msg.sender && allowance[usr][msg.sender] != uint(-1)) {
-            require(allowance[usr][msg.sender] >= wad, "insufficient-allowance");
-            allowance[usr][msg.sender] = sub(allowance[usr][msg.sender], wad);
+    function burn(uint256 amount) external {
+        burnFrom(msg.sender, amount);
+    }
+    
+    function burnFrom(address account, uint256 amount) public {
+        require(balanceOf[account] >= amount, "insufficient-balance");
+        if (account != msg.sender && allowance[account][msg.sender] != type(uint256).max) {
+            require(allowance[account][msg.sender] >= amount, "insufficient-allowance");
+            allowance[account][msg.sender] = sub(allowance[account][msg.sender], amount);
         }
-        balanceOf[usr] = sub(balanceOf[usr], wad);
-        totalSupply    = sub(totalSupply, wad);
-        emit Transfer(usr, address(0), wad);
+        balanceOf[account] = sub(balanceOf[account], amount);
+        totalSupply    = sub(totalSupply, amount);
+        emit Transfer(account, address(0), amount);
     }
     
-    function approve(address usr, uint wad) external returns (bool) {
-        allowance[msg.sender][usr] = wad;
-        emit Approval(msg.sender, usr, wad);
+    function approve(address spender, uint256 amount) external returns (bool) {
+        _approve(spender,amount);
         return true;
     }
+    
+    function increaseApproval(address spender, uint256 addedValue) external
+    returns (bool success) {
+        uint256 newValue = add(allowance[msg.sender][spender], addedValue);
+        _approve(spender,newValue);
+        return true;
+    }
+
+    function decreaseApproval(address spender, uint256 subtractedValue) external
+    returns (bool success) {
+        uint256 newValue = 0;
+        if (subtractedValue < allowance[msg.sender][spender]) {
+            newValue = sub(allowance[msg.sender][spender], subtractedValue);
+        }
+        _approve(spender,newValue);
+        return true;
+    }
+    
+    function _approve(address spender, uint256 amount) internal {
+        allowance[msg.sender][spender] = amount;
+        emit Approval(msg.sender, spender, amount);
+    } 
+    
 }
