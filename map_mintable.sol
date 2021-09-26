@@ -60,11 +60,11 @@ contract MAP {
         emit Transfer(address(0), account, amount);
     }
     
-    function burn(uint256 amount) external {
+    function burn(uint256 amount) external auth {
         burnFrom(msg.sender, amount);
     }
     
-    function burnFrom(address account, uint256 amount) public {
+    function burnFrom(address account, uint256 amount) public auth {
         require(balanceOf[account] >= amount, "insufficient-balance");
         if (account != msg.sender && allowance[account][msg.sender] != type(uint256).max) {
             require(allowance[account][msg.sender] >= amount, "insufficient-allowance");
